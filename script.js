@@ -1,17 +1,32 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const navContainer = document.querySelector('.nav-scroll-container');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('.menu-section');
+
     // Smooth scrolling for navigation links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
+    navLinks.forEach(link => {
+        link.addEventListener('click', function (e) {
             e.preventDefault();
             const targetId = this.getAttribute('href');
             const targetElement = document.querySelector(targetId);
             
             if (targetElement) {
+                const headerHeight = document.querySelector('.main-header').offsetHeight;
                 const navbarHeight = document.querySelector('.navbar').offsetHeight;
-                const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
+                const targetPosition = targetElement.getBoundingClientRect().top + window.pageYOffset - headerHeight - navbarHeight;
                 
                 window.scrollTo({
                     top: targetPosition,
+                    behavior: 'smooth'
+                });
+
+                // Center the clicked link in the nav container
+                const linkRect = this.getBoundingClientRect();
+                const containerRect = navContainer.getBoundingClientRect();
+                const scrollLeft = navContainer.scrollLeft + (linkRect.left - containerRect.left) - (containerRect.width / 2) + (linkRect.width / 2);
+                
+                navContainer.scrollTo({
+                    left: scrollLeft,
                     behavior: 'smooth'
                 });
             }
@@ -36,13 +51,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }, observerOptions);
 
     // Observe all menu sections
-    document.querySelectorAll('.menu-section').forEach(section => {
+    sections.forEach(section => {
         observer.observe(section);
     });
 
     // Add active state to navigation links based on scroll position
-    const sections = document.querySelectorAll('.menu-section');
-    const navLinks = document.querySelectorAll('.nav-link');
+    const headerHeight = document.querySelector('.main-header').offsetHeight;
+    const navbarHeight = document.querySelector('.navbar').offsetHeight;
+    const offset = headerHeight + navbarHeight + 50;
 
     window.addEventListener('scroll', () => {
         let current = '';
@@ -50,9 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sections.forEach(section => {
             const sectionTop = section.offsetTop;
             const sectionHeight = section.clientHeight;
-            const navbarHeight = document.querySelector('.navbar').offsetHeight;
             
-            if (window.pageYOffset >= sectionTop - navbarHeight - 50) {
+            if (window.pageYOffset >= sectionTop - offset) {
                 current = section.getAttribute('id');
             }
         });
@@ -61,7 +76,49 @@ document.addEventListener('DOMContentLoaded', () => {
             link.classList.remove('active');
             if (link.getAttribute('href').slice(1) === current) {
                 link.classList.add('active');
+                
+                // Ensure active link is visible in the nav container
+                const linkRect = link.getBoundingClientRect();
+                const containerRect = navContainer.getBoundingClientRect();
+                
+                if (linkRect.left < containerRect.left || linkRect.right > containerRect.right) {
+                    const scrollLeft = navContainer.scrollLeft + (linkRect.left - containerRect.left) - (containerRect.width / 2) + (linkRect.width / 2);
+                    navContainer.scrollTo({
+                        left: scrollLeft,
+                        behavior: 'smooth'
+                    });
+                }
             }
         });
+    });
+
+    // Touch scroll handling for mobile
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    navContainer.addEventListener('mousedown', (e) => {
+        isDown = true;
+        navContainer.style.cursor = 'grabbing';
+        startX = e.pageX - navContainer.offsetLeft;
+        scrollLeft = navContainer.scrollLeft;
+    });
+
+    navContainer.addEventListener('mouseleave', () => {
+        isDown = false;
+        navContainer.style.cursor = 'grab';
+    });
+
+    navContainer.addEventListener('mouseup', () => {
+        isDown = false;
+        navContainer.style.cursor = 'grab';
+    });
+
+    navContainer.addEventListener('mousemove', (e) => {
+        if (!isDown) return;
+        e.preventDefault();
+        const x = e.pageX - navContainer.offsetLeft;
+        const walk = (x - startX) * 2;
+        navContainer.scrollLeft = scrollLeft - walk;
     });
 }); 
